@@ -1,3 +1,3 @@
-module github.com/Barrioslopezfd/ginter
+module github.com/Barrioslopezfd/monkey
 
 go 1.23.2
