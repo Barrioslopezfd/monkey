@@ -1,1 +1,1 @@
-# ginter interpreter
+# Monkey interpreter
