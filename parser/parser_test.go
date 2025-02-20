@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/Barrioslopezfd/monkey/ast"
@@ -135,6 +136,97 @@ func TestIdentifierExpression(t *testing.T) {
 	}
 
 	if ident.TokenLiteral() != "foobar" {
-		t.Errorf("ident.Value is not %s, got=%s\n", "foobar", ident.TokenLiteral())
+		t.Errorf("ident.TokenLiteral is not %s, got=%s\n", "foobar", ident.TokenLiteral())
 	}
+}
+
+func TestIntegerLiteralExpression(t *testing.T) {
+	input := "5;"
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserError(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("len(program.Statements) is not 1, got=%d\n", len(program.Statements))
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("program.Statements[0] is not *ast.ExpressionStatement, got=%T\n", program.Statements[0])
+	}
+
+	literal, ok := stmt.Expression.(*ast.IntegerLiteral)
+	if !ok {
+		t.Fatalf("stmt.Expression is not *ast.IntegerLiteral, got=%T\n", stmt.Expression)
+	}
+
+	if literal.Value != 5 {
+		t.Errorf("ident.Value is not %d, got=%d\n", 5, literal.Value)
+	}
+
+	if literal.TokenLiteral() != "5" {
+		t.Errorf("ident.TokenLiteral is not %s, got=%s\n", "5", literal.TokenLiteral())
+	}
+}
+
+func TestParsingPrefixExpressions(t *testing.T) {
+	prefixTests := []struct {
+		input    string
+		operator string
+		integer  int64
+	}{
+		{"!5;", "!", 5},
+		{"-15;", "-", 15},
+	}
+
+	for _, tt := range prefixTests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserError(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("Error, not enough statements, got=%d", len(program.Statements))
+		}
+
+		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		if !ok {
+			t.Fatalf("program.Statements[0] is not an ast.ExpresionStatement, got=%T", program.Statements[0])
+		}
+
+		exp, ok := stmt.Expression.(*ast.PrefixExpression)
+		if !ok {
+			t.Fatalf("stmt is not ast.PrefixExpression, got=%T", stmt.Expression)
+		}
+
+		if exp.Operator != tt.operator {
+			t.Fatalf("expression operator does not match, expected=%s, got=%s", tt.operator, exp.Operator)
+		}
+
+		if !testIntegerLiteral(t, exp.Right, tt.integer) {
+			return
+		}
+	}
+}
+
+func testIntegerLiteral(t *testing.T, exp ast.Expression, value int64) bool {
+	ent, ok := exp.(*ast.IntegerLiteral)
+	if !ok {
+		t.Errorf("expression is not integer literal, got=%T", exp)
+		return false
+	}
+
+	if ent.Value != value {
+		t.Errorf("value does not match. expected=%d, got=%d", value, ent.Value)
+		return false
+	}
+
+	if ent.TokenLiteral() != fmt.Sprintf("%d", value) {
+		t.Errorf("ent.TokenLiteral not \"%d\", got=%s", value, ent.TokenLiteral())
+		return false
+	}
+
+	return true
 }
